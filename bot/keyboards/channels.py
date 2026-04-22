@@ -16,18 +16,25 @@ def get_my_channels_keyboard(channels: Iterable[Record]) -> InlineKeyboardMarkup
                 )
             ]
         )
-    rows.append([InlineKeyboardButton(text="В меню", callback_data="menu:main")])
+    rows.append([InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def get_channel_card_keyboard(channel_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Изменить тематику", callback_data=f"channel:edit_niche:{channel_id}")],
-            [InlineKeyboardButton(text="Изменить подписчиков", callback_data=f"channel:edit_subscribers:{channel_id}")],
-            [InlineKeyboardButton(text="🔄 Обновить подписчиков", callback_data=f"channel:refresh_subscribers:{channel_id}")],
-            [InlineKeyboardButton(text="Статистика канала", callback_data=f"channel:stats:{channel_id}")],
-            [InlineKeyboardButton(text="Назад", callback_data="channels:list")],
+            [
+                InlineKeyboardButton(text="🏷 Тематика", callback_data=f"channel:edit_niche:{channel_id}"),
+                InlineKeyboardButton(text="👥 Подписчики", callback_data=f"channel:edit_subscribers:{channel_id}"),
+            ],
+            [
+                InlineKeyboardButton(text="🔄 Обновить", callback_data=f"channel:refresh_subscribers:{channel_id}"),
+                InlineKeyboardButton(text="📊 Статистика", callback_data=f"channel:stats:{channel_id}"),
+            ],
+            [
+                InlineKeyboardButton(text="↩️ Назад", callback_data="channels:list"),
+                InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main"),
+            ],
         ]
     )
 
@@ -35,7 +42,9 @@ def get_channel_card_keyboard(channel_id: int) -> InlineKeyboardMarkup:
 def get_no_channels_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Добавить канал", callback_data="add_channel:start")],
-            [InlineKeyboardButton(text="В меню", callback_data="menu:main")],
+            [
+                InlineKeyboardButton(text="➕ Добавить канал", callback_data="add_channel:start"),
+                InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main"),
+            ],
         ]
     )

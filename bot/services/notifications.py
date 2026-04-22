@@ -4,6 +4,8 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError
 from asyncpg import Pool
 
+from config import settings as app_settings
+from keyboards.admin import get_set_paid_price_keyboard
 from keyboards.notifications import (
     get_bundle_notification_keyboard,
     get_creator_participant_joined_keyboard,
@@ -40,6 +42,13 @@ def _notification_type(free_allowed: bool, paid_allowed: bool) -> str:
     return "paid_match"
 
 
+def _paid_entry_enabled(bundle) -> bool:
+    paid_price = bundle["paid_slot_price"]
+    if paid_price is None:
+        return False
+    return bool(bundle["has_paid_slot"]) and int(paid_price) > 0
+
+
 async def find_matching_channels_for_bundle(pool: Pool, bundle_id: int) -> list[dict]:
     bundle = await get_bundle_with_creator_channel(pool, bundle_id)
     if not bundle or bundle["status"] != "open":
@@ -71,7 +80,7 @@ async def find_matching_channels_for_bundle(pool: Pool, bundle_id: int) -> list[
             same_niche=channel["niche"] == bundle["niche"],
             channel_subscribers=channel["subscribers"],
             creator_subscribers=bundle["creator_subscribers"],
-            bundle_has_paid_slot=bool(bundle["has_paid_slot"]),
+            bundle_has_paid_slot=_paid_entry_enabled(bundle),
             paid_slot_taken=paid_taken,
         )
         if not match["free_allowed"] and not match["paid_allowed"]:
@@ -278,3 +287,39 @@ async def notify_creator_about_new_participant(bot: Bot, pool: Pool, participant
             participant_id,
             str(exc),
         )
+
+
+async def notify_admins_to_set_paid_price(bot: Bot, pool: Pool, bundle_id: int) -> None:
+    bundle = await get_bundle_with_creator_channel(pool, bundle_id)
+    if not bundle:
+        return
+
+    creator_name = bundle["creator_username"] or bundle["creator_title"] or f"Канал #{bundle['creator_channel_id']}"
+    text = (
+        f"Новая подборка #{bundle['id']} создана и скоро будет опубликована.\n"
+        f"Организатор: {creator_name}\n"
+        f"Публикация: {format_datetime_for_preview(bundle['scheduled_at'])}\n\n"
+        "Назначь цену платного места."
+    )
+
+    for admin_id in app_settings.admin_telegram_ids:
+        try:
+            await bot.send_message(
+                chat_id=int(admin_id),
+                text=text,
+                reply_markup=get_set_paid_price_keyboard(int(bundle["id"])),
+            )
+        except (TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError) as exc:
+            logger.info(
+                "Failed to notify admin for paid price bundle_id=%s admin_id=%s error=%s",
+                bundle_id,
+                admin_id,
+                str(exc),
+            )
+        except Exception as exc:
+            logger.info(
+                "Unexpected admin paid price notification error bundle_id=%s admin_id=%s error=%s",
+                bundle_id,
+                admin_id,
+                str(exc),
+            )

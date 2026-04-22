@@ -16,16 +16,18 @@ def get_find_bundle_channel_keyboard(channels: Iterable[Record]) -> InlineKeyboa
                 )
             ]
         )
-    rows.append([InlineKeyboardButton(text="В меню", callback_data="menu:main")])
+    rows.append([InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def get_find_bundle_no_ready_channels_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Добавить канал", callback_data="add_channel:start")],
-            [InlineKeyboardButton(text="Мои каналы", callback_data="channels:list")],
-            [InlineKeyboardButton(text="В меню", callback_data="menu:main")],
+            [
+                InlineKeyboardButton(text="➕ Добавить канал", callback_data="add_channel:start"),
+                InlineKeyboardButton(text="📺 Мои каналы", callback_data="channels:list"),
+            ],
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main")],
         ]
     )
 
@@ -36,23 +38,29 @@ def get_find_bundle_results_keyboard(bundle_ids: Iterable[int]) -> InlineKeyboar
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=f"Открыть подборку #{bundle_id}",
+                    text=f"📋 Открыть подборку #{bundle_id}",
                     callback_data=f"find_bundle:view:{bundle_id}",
                 )
             ]
         )
-    rows.append([InlineKeyboardButton(text="Обновить", callback_data="find_bundle:refresh")])
-    rows.append([InlineKeyboardButton(text="Выбрать другой канал", callback_data="find_bundle:choose_channel")])
-    rows.append([InlineKeyboardButton(text="В меню", callback_data="menu:main")])
+    rows.append(
+        [
+            InlineKeyboardButton(text="🔄 Обновить", callback_data="find_bundle:refresh"),
+            InlineKeyboardButton(text="📺 Другой канал", callback_data="find_bundle:choose_channel"),
+        ]
+    )
+    rows.append([InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def get_find_bundle_empty_results_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Обновить", callback_data="find_bundle:refresh")],
-            [InlineKeyboardButton(text="Выбрать другой канал", callback_data="find_bundle:choose_channel")],
-            [InlineKeyboardButton(text="В меню", callback_data="menu:main")],
+            [
+                InlineKeyboardButton(text="🔄 Обновить", callback_data="find_bundle:refresh"),
+                InlineKeyboardButton(text="📺 Другой канал", callback_data="find_bundle:choose_channel"),
+            ],
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main")],
         ]
     )
 
@@ -68,7 +76,7 @@ def get_find_bundle_card_keyboard(
         rows.append(
             [
                 InlineKeyboardButton(
-                    text="Вступить бесплатно",
+                    text="🆓 Вступить бесплатно",
                     callback_data=f"find_bundle:join_free:{bundle_id}",
                 )
             ]
@@ -77,13 +85,13 @@ def get_find_bundle_card_keyboard(
         rows.append(
             [
                 InlineKeyboardButton(
-                    text="Вступить платно",
+                    text="💳 Вступить платно",
                     callback_data=f"find_bundle:join_paid:{bundle_id}",
                 )
             ]
         )
-    rows.append([InlineKeyboardButton(text="Назад к списку", callback_data=back_callback)])
-    rows.append([InlineKeyboardButton(text="В меню", callback_data="menu:main")])
+    rows.append([InlineKeyboardButton(text="↩️ Назад к списку", callback_data=back_callback)])
+    rows.append([InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -93,20 +101,26 @@ def get_pending_participations_keyboard(participant_ids: Iterable[int]) -> Inlin
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=f"Открыть участие #{participant_id}",
+                    text=f"🧩 Открыть участие #{participant_id}",
                     callback_data=f"participations:open:{participant_id}",
                 )
             ]
         )
-    rows.append([InlineKeyboardButton(text="Обновить", callback_data="participations:refresh")])
-    rows.append([InlineKeyboardButton(text="В меню", callback_data="menu:main")])
+    rows.append(
+        [
+            InlineKeyboardButton(text="🔄 Обновить", callback_data="participations:refresh"),
+            InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main"),
+        ]
+    )
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def get_pending_participations_empty_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Обновить", callback_data="participations:refresh")],
-            [InlineKeyboardButton(text="В меню", callback_data="menu:main")],
+            [
+                InlineKeyboardButton(text="🔄 Обновить", callback_data="participations:refresh"),
+                InlineKeyboardButton(text="🏠 В меню", callback_data="menu:main"),
+            ],
         ]
     )

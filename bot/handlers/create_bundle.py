@@ -30,7 +30,7 @@ from services.datetime_utils import (
     get_date_by_choice,
     is_future_datetime,
 )
-from services.notifications import send_bundle_notifications
+from services.notifications import notify_admins_to_set_paid_price, send_bundle_notifications
 from states.create_bundle import BundleCreateStates
 
 
@@ -38,12 +38,6 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 TIME_PATTERN = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
-
-
-def _format_money(value: int | None) -> str:
-    if value is None:
-        return "-"
-    return f"{value:,}".replace(",", " ")
 
 
 def _parse_int_suffix(data: str, prefix: str) -> int | None:
@@ -84,7 +78,6 @@ async def _show_preview(message: Message, state: FSMContext) -> None:
     niche = data.get("niche") or "не выбрана"
     slots = data.get("slots")
     post_lifetime_hours = data.get("post_lifetime_hours")
-    paid_slot_price = data.get("paid_slot_price")
     ad_text = data.get("ad_text") or ""
 
     preview_text = (
@@ -95,7 +88,7 @@ async def _show_preview(message: Message, state: FSMContext) -> None:
         f"Участников: {slots}\n"
         f"Срок поста: {post_lifetime_hours} часов\n"
         "Платное место: 1 (обязательное)\n"
-        f"Цена: {_format_money(paid_slot_price)} ₽\n"
+        "Цена платного места: назначается администратором сервиса\n"
         f"Твой текст: {ad_text}"
     )
     await message.answer(preview_text, reply_markup=get_bundle_confirmation_keyboard())
@@ -316,33 +309,11 @@ async def choose_post_lifetime(callback: CallbackQuery, state: FSMContext) -> No
         await callback.message.answer("Выбери один из вариантов: 24, 48 или 72 часа")
         return
 
-    await state.update_data(post_lifetime_hours=lifetime, has_paid_slot=True)
-    await state.set_state(BundleCreateStates.waiting_for_paid_slot_price)
-    await callback.message.answer(
-        "В каждой подборке есть 1 платное место.\n"
-        "Отправь цену платного участия в рублях, например: 2000",
-    )
-
-
-@router.message(BundleCreateStates.waiting_for_paid_slot_price)
-async def receive_paid_slot_price(message: Message, state: FSMContext) -> None:
-    if not message.text:
-        await message.answer("Отправь цену числом, например: 2000")
-        return
-
-    raw = message.text.strip().replace(" ", "")
-    if not raw.isdigit():
-        await message.answer("Отправь цену числом, например: 2000")
-        return
-
-    price = int(raw)
-    if price <= 0 or price > 1_000_000:
-        await message.answer("Отправь цену числом, например: 2000")
-        return
-
-    await state.update_data(paid_slot_price=price)
+    await state.update_data(post_lifetime_hours=lifetime, has_paid_slot=True, paid_slot_price=None)
     await state.set_state(BundleCreateStates.waiting_for_ad_text)
-    await message.answer("Теперь отправь рекламный текст своего канала до 200 символов")
+    await callback.message.answer(
+        "Отправь рекламный текст своего канала до 200 символов",
+    )
 
 
 @router.message(BundleCreateStates.waiting_for_ad_text)
@@ -372,7 +343,6 @@ async def confirm_bundle_creation(callback: CallbackQuery, state: FSMContext) ->
     scheduled_at_raw = data.get("scheduled_at")
     slots = data.get("slots")
     post_lifetime_hours = data.get("post_lifetime_hours")
-    paid_slot_price = data.get("paid_slot_price")
     ad_text = data.get("ad_text")
 
     if (
@@ -381,8 +351,6 @@ async def confirm_bundle_creation(callback: CallbackQuery, state: FSMContext) ->
         or not isinstance(scheduled_at_raw, str)
         or not isinstance(slots, int)
         or not isinstance(post_lifetime_hours, int)
-        or not isinstance(paid_slot_price, int)
-        or paid_slot_price <= 0
         or not isinstance(ad_text, str)
     ):
         await state.clear()
@@ -422,7 +390,7 @@ async def confirm_bundle_creation(callback: CallbackQuery, state: FSMContext) ->
         slots,
         post_lifetime_hours,
         True,
-        paid_slot_price,
+        None,
     )
     created_bundle = await create_bundle(
         pool=pool,
@@ -431,7 +399,7 @@ async def confirm_bundle_creation(callback: CallbackQuery, state: FSMContext) ->
         scheduled_at=scheduled_at,
         slots=slots,
         has_paid_slot=True,
-        paid_slot_price=paid_slot_price,
+        paid_slot_price=None,
         post_lifetime_hours=post_lifetime_hours,
     )
     if not created_bundle:
@@ -473,6 +441,19 @@ async def confirm_bundle_creation(callback: CallbackQuery, state: FSMContext) ->
             str(exc),
         )
 
+    try:
+        await notify_admins_to_set_paid_price(
+            bot=callback.bot,
+            pool=pool,
+            bundle_id=created_bundle["id"],
+        )
+    except Exception as exc:
+        logger.info(
+            "Notify admins to set paid price failed bundle_id=%s error=%s",
+            created_bundle["id"],
+            str(exc),
+        )
+
     await state.clear()
     await callback.message.answer(
         f"Подборка создана ✅\nСейчас в ней {participants_count} из {slots} участников",
@@ -488,7 +469,6 @@ async def confirm_bundle_creation(callback: CallbackQuery, state: FSMContext) ->
         BundleCreateStates.waiting_for_time,
         BundleCreateStates.waiting_for_slots,
         BundleCreateStates.waiting_for_post_lifetime,
-        BundleCreateStates.waiting_for_paid_slot_price,
         BundleCreateStates.waiting_for_ad_text,
         BundleCreateStates.waiting_for_confirmation,
     ),

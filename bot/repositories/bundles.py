@@ -186,6 +186,19 @@ async def update_bundle_status(pool: Pool, bundle_id: int, status: str) -> Optio
         return await connection.fetchrow(query, bundle_id, status)
 
 
+async def update_bundle_paid_slot_price(pool: Pool, bundle_id: int, paid_slot_price: int) -> Optional[Record]:
+    query = """
+    UPDATE bundles
+    SET paid_slot_price = $2
+    WHERE id = $1
+      AND has_paid_slot = TRUE
+      AND status IN ('open', 'full', 'scheduled')
+    RETURNING *
+    """
+    async with pool.acquire() as connection:
+        return await connection.fetchrow(query, bundle_id, paid_slot_price)
+
+
 async def update_bundle_preview(
     pool: Pool,
     bundle_id: int,

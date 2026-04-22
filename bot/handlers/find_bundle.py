@@ -63,6 +63,13 @@ def _format_number(value: int | None) -> str:
     return f"{value:,}".replace(",", " ")
 
 
+def _paid_entry_enabled(bundle) -> bool:
+    paid_price = bundle["paid_slot_price"]
+    if paid_price is None:
+        return False
+    return bool(bundle["has_paid_slot"]) and int(paid_price) > 0
+
+
 def _parse_int_suffix(data: str, prefix: str) -> int | None:
     if not data.startswith(prefix):
         return None
@@ -109,7 +116,7 @@ async def _evaluate_bundle_for_channel(pool, seeker_channel, bundle) -> dict:
         same_niche=seeker_channel["niche"] == bundle["niche"],
         channel_subscribers=seeker_channel["subscribers"],
         creator_subscribers=bundle["creator_subscribers"],
-        bundle_has_paid_slot=bool(bundle["has_paid_slot"]),
+        bundle_has_paid_slot=_paid_entry_enabled(bundle),
         paid_slot_taken=paid_taken,
     )
     return {
@@ -173,7 +180,7 @@ async def _render_results_for_channel(message_target, state: FSMContext, channel
         creator_name = bundle["creator_username"] or bundle["creator_title"] or f"Канал #{bundle['creator_channel_id']}"
         paid_text = "нет"
         if bundle["has_paid_slot"]:
-            paid_text = f"{_format_number(paid_price)} ₽" if paid_price else "доступно"
+            paid_text = f"{_format_number(paid_price)} ₽" if paid_price else "назначается администратором"
         free_text = "доступно ✅" if free_allowed else "недоступно"
         paid_availability = "доступно ✅" if paid_allowed else "недоступно"
 
@@ -305,7 +312,7 @@ async def _show_bundle_card(
     creator_name = bundle["creator_username"] or bundle["creator_title"] or f"Канал #{bundle['creator_channel_id']}"
     paid_label = "нет"
     if bundle["has_paid_slot"]:
-        paid_label = f"{_format_number(bundle['paid_slot_price'])} ₽" if bundle["paid_slot_price"] else "да"
+        paid_label = f"{_format_number(bundle['paid_slot_price'])} ₽" if bundle["paid_slot_price"] else "назначается администратором"
 
     if free_allowed and paid_allowed:
         entry_text = "Можно бесплатно и платно"
